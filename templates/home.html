@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+    <meta name="theme-color" content="#1e293b">
+    <title>Мой дом</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body { font-family: -apple-system, system-ui, sans-serif; background: #0f172a; color: #f8fafc; overflow: hidden; height: 100vh; }
+        
+        .top { background: linear-gradient(135deg, #1e293b, #334155); padding: 12px; display: flex; justify-content: space-between; align-items: center; position: absolute; top: 0; left: 0; right: 0; z-index: 100; border-bottom: 1px solid #475569; }
+        .top h1 { font-size: 1rem; color: #38bdf8; }
+        .top a { color: #f8fafc; text-decoration: none; padding: 6px 12px; border: 1px solid rgba(255,255,255,.2); border-radius: 8px; font-size: .8rem; }
+        
+        #home-container { position: absolute; top: 50px; bottom: 0; left: 0; right: 0; overflow: hidden; background: #0f172a; }
+        #homeCanvas { width: 100%; height: 100%; display: block; image-rendering: pixelated; touch-action: none; }
+        
+        .action-btn { position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); background: #22c55e; color: white; border: none; padding: 12px 24px; border-radius: 30px; font-size: 1.1rem; font-weight: bold; display: none; z-index: 20; box-shadow: 0 4px 15px rgba(34,197,94,0.5); cursor: pointer; }
+        
+        .exit-btn { position: absolute; top: 70px; right: 10px; background: #ef4444; color: white; padding: 10px 15px; border-radius: 10px; font-weight: bold; text-decoration: none; z-index: 50; box-shadow: 0 4px 10px rgba(0,0,0,0.5); border: none; }
+
+        #wrench-btn { position: absolute; bottom: 30px; right: 20px; background: #3b82f6; color: white; border: none; width: 60px; height: 60px; border-radius: 50%; font-size: 30px; display: flex; justify-content: center; align-items: center; z-index: 50; box-shadow: 0 4px 15px rgba(59,130,246,0.5); cursor: pointer; transition: transform 0.2s; }
+        #wrench-btn:active { transform: scale(0.9); }
+
+        #inventory-panel { position: absolute; bottom: 100px; right: 20px; background: #1e293b; border: 2px solid #38bdf8; border-radius: 16px; padding: 15px; display: none; flex-direction: column; gap: 10px; z-index: 60; max-height: 50vh; overflow-y: auto; width: 220px; box-shadow: 0 10px 30px rgba(0,0,0,0.8); }
+        #inventory-panel h3 { color: #38bdf8; font-size: 14px; margin-bottom: 5px; text-align: center; }
+        .inv-item { background: #0f172a; border: 1px solid #334155; padding: 10px; border-radius: 8px; text-align: center; cursor: pointer; transition: background 0.2s; }
+        .inv-item:hover { background: #334155; }
+        .inv-item .icon { font-size: 24px; display: block; margin-bottom: 5px; }
+        .inv-item .name { font-size: 12px; font-weight: bold; }
+
+        #confirm-bar { position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); background: #1e293b; border: 2px solid #8b5cf6; border-radius: 20px; padding: 10px 20px; display: none; gap: 20px; z-index: 70; box-shadow: 0 10px 30px rgba(139, 92, 246, 0.4); }
+        .conf-btn { border: none; width: 50px; height: 50px; border-radius: 50%; font-size: 24px; cursor: pointer; display: flex; justify-content: center; align-items: center; color: white; font-weight: bold; }
+        .conf-btn.check { background: #22c55e; }
+        .conf-btn.cancel { background: #ef4444; }
+
+        #death-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: black; opacity: 0; pointer-events: none; z-index: 9000; transition: opacity 0.3s; }
+        #hunger-timer { display: none; position: fixed; top: 20%; left: 50%; transform: translateX(-50%); font-size: 4rem; font-weight: 900; color: #ef4444; z-index: 9500; text-shadow: 0 0 20px black, 0 0 40px red; pointer-events: none; animation: pulse 1s infinite; }
+        @keyframes pulse { 0% { transform: translateX(-50%) scale(1); } 50% { transform: translateX(-50%) scale(1.1); } 100% { transform: translateX(-50%) scale(1); } }
+    </style>
+</head>
+<body>
+
+    <div id="death-overlay"></div>
+    <div id="hunger-timer">30 сек</div>
+
+    <div class="top">
+        <h1>🏠 Моя квартира</h1>
+        <a href="/">На улицу</a>
+    </div>
+
+    <div id="home-container">
+        <canvas id="homeCanvas"></canvas>
+        <button id="actionBtn" class="action-btn">Действие</button>
+        <button onclick="exitHome()" class="exit-btn">Выйти 🚪</button>
+        
+        <button id="wrench-btn" onclick="toggleInventory()">🔧</button>
+        
+        <div id="inventory-panel">
+            <h3>Мебель</h3>
+            <div id="inv-list"></div>
+            <button onclick="clearRoom()" style="background:#ef4444; color:white; border:none; padding:8px; border-radius:8px; margin-top:10px; font-weight:bold; cursor:pointer;">Очистить комнату</button>
+        </div>
+
+        <div id="confirm-bar">
+            <button class="conf-btn cancel" onclick="cancelEdit()">✕</button>
+            <button class="conf-btn check" onclick="confirmEdit()">✓</button>
+        </div>
+    </div>
+
+    <script>
+        const initialFurniture = {{ furniture | tojson }};
+        const carriedBoxes = {{ carried | tojson }};
+    </script>
+    <script>window.deathRemainingAtLoad = {{ death_remaining or 0 }};</script>
+    <script src="/static/js/hunger_timer.js"></script>
+    <!-- Добавлен ?v=3 чтобы сбросить кеш браузера -->
+    <script src="/static/js/home.js?v=3"></script>
+</body>
+</html>
